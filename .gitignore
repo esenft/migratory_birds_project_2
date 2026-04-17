@@ -1,0 +1,12 @@
+# Raw data (VERY large)
+data/raw/
+
+# Processed data (also large)
+data/parquet/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code settings (optional to ignore, your call)
+# .vscode/
