@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, List
 
 import pandas as pd
@@ -121,7 +121,7 @@ def get_target_state_recent_count_features(state: str, common_name: str) -> Dict
     df = to_dataframe(obs_json)
     df = filter_species(df, common_name)
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     w1_start = now - timedelta(days=7)
     w2_start = now - timedelta(days=14)
     w3_start = now - timedelta(days=21)
@@ -161,7 +161,7 @@ def get_southern_corridor_signal(state: str, common_name: str) -> Dict[str, floa
     total_last_7d = 0
     total_prev_7d = 0
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     w1_start = now - timedelta(days=7)
     w2_start = now - timedelta(days=14)
 
