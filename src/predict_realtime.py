@@ -25,6 +25,25 @@ def interpret_probability(prob: float) -> str:
         return "Likely present"
     return "Strong presence signal"
 
+def estimate_arrival_window(
+    common_name: str,
+    state: str,
+    probability_present: float,
+    corridor_last_7d: float,
+    local_last_7d: float,
+    week_of_year: int,
+) -> str:
+    if probability_present >= 0.8:
+        return "Present now"
+    elif probability_present >= 0.6:
+        return "Likely within 7 days"
+    elif probability_present >= 0.4:
+        return "Likely within 1–2 weeks"
+    elif corridor_last_7d > 0 or local_last_7d > 0:
+        return "Likely within 2–3 weeks"
+    else:
+        return "No strong arrival signal yet"
+
 def build_model_features(state: str, common_name: str) -> Dict[str, Any]:
     """
     Build a single feature dictionary matching the trained model schema.
@@ -79,10 +98,17 @@ def predict_presence(state: str, common_name: str) -> Dict[str, Any]:
 
     probability_present = float(model.predict_proba(X)[0][1])
     prediction = int(model.predict(X)[0])
-
     label = "Present" if prediction == 1 else "Not Present"
-
     interpretation = interpret_probability(probability_present)
+
+    arrival_estimate = estimate_arrival_window(
+    common_name=common_name,
+    state=state,
+    probability_present=probability_present,
+    corridor_last_7d=built["corridor_features"]["south_corridor_obs_last_7d"],
+    local_last_7d=model_features["lag_1_obs_count"],
+    week_of_year=model_features["week_of_year"],
+)
 
     return {
     "bird_common_name": common_name,
@@ -91,7 +117,8 @@ def predict_presence(state: str, common_name: str) -> Dict[str, Any]:
     "prediction": prediction,
     "prediction_label": label,
     "probability_present": probability_present,
-    "interpretation": interpretation,  # 👈 ADD THIS
+    "interpretation": interpretation,  
+    "arrival_estimate": arrival_estimate,  
     "model_features": model_features,
     "corridor_features": built["corridor_features"],
 }
@@ -118,3 +145,5 @@ if __name__ == "__main__":
         print(f"{key}: {value}")
 
     print(f"Interpretation: {result['interpretation']}")
+
+    print(f"Arrival estimate: {result['arrival_estimate']}")

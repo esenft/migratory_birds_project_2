@@ -3,14 +3,23 @@ import streamlit as st
 from src.predict_realtime import predict_presence
 from src.services.species_map import COMMON_TO_SCIENTIFIC
 
+def c_to_f(c):
+    return (c * 9/5) + 32
+
+def mm_to_in(mm):
+    return mm / 25.4
+
+def kmh_to_mph(kmh):
+    return kmh * 0.621371
+
 NORTHEAST_STATES = [
+    "Connecticut",
+    "Maine",
     "Massachusetts",
     "New Hampshire",
-    "Maine",
-    "Vermont",
-    "Rhode Island",
-    "Connecticut",
     "New York",
+    "Rhode Island",
+    "Vermont",
 ]
 
 BIRD_OPTIONS = list(COMMON_TO_SCIENTIFIC.keys())
@@ -44,6 +53,11 @@ if st.button("Generate Prediction"):
             st.write(f"**Classification:** {label}")
             st.write(f"**Interpretation:** {interpretation}")
 
+            if prob < 0.8:
+                st.write(f"**Estimated arrival:** {result['arrival_estimate']}")
+            else:
+              st.success("Likely already present in this state")
+
             st.subheader("Bird")
             st.write(f"**Common name:** {result['bird_common_name']}")
             st.write(f"**Scientific name:** {result['bird_scientific_name']}")
@@ -64,22 +78,20 @@ if st.button("Generate Prediction"):
             )
 
             st.subheader("Recent Weather")
-            st.write(
-                f"- Mean temperature (7d): **{result['model_features']['temp_mean_7d']:.1f}°C**"
-            )
-            st.write(
-                f"- Max temperature (7d): **{result['model_features']['temp_max_7d']:.1f}°C**"
-            )
-            st.write(
-                f"- Min temperature (7d): **{result['model_features']['temp_min_7d']:.1f}°C**"
-            )
-            st.write(
-                f"- Precipitation sum (7d): **{result['model_features']['precip_sum_7d']:.1f} mm**"
-            )
-            st.write(
-                f"- Max wind speed (7d): **{result['model_features']['wind_max_7d']:.1f} km/h**"
-            )
 
+            temp_mean_f = c_to_f(result["model_features"]["temp_mean_7d"])
+            temp_max_f = c_to_f(result["model_features"]["temp_max_7d"])
+            temp_min_f = c_to_f(result["model_features"]["temp_min_7d"])
+            precip_in = mm_to_in(result["model_features"]["precip_sum_7d"])
+            wind_mph = kmh_to_mph(result["model_features"]["wind_max_7d"])
+
+            st.write(f"- Mean temperature (7d): **{temp_mean_f:.1f}°F**")
+            st.write(f"- Max temperature (7d): **{temp_max_f:.1f}°F**")
+            st.write(f"- Min temperature (7d): **{temp_min_f:.1f}°F**")
+
+            st.write(f"- Precipitation (7d): **{precip_in:.2f} inches**")
+            st.write(f"- Max wind speed (7d): **{wind_mph:.1f} mph**")
+            
             with st.expander("Model Feature Details"):
                 st.json(result["model_features"])
 
