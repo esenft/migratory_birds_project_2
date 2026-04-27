@@ -5,10 +5,9 @@ COMMON_TO_SCIENTIFIC = {
     "Red-winged Blackbird": "Agelaius phoeniceus",
 }
 
-# For eBird search, common names are often more natural for matching returned records
-COMMON_TO_DISPLAY = {
-    "Ruby-throated Hummingbird": "Ruby-throated Hummingbird",
-    "Yellow Warbler": "Yellow Warbler",
-    "Baltimore Oriole": "Baltimore Oriole",
-    "Red-winged Blackbird": "Red-winged Blackbird",
+COMMON_TO_EBIRD_CODE = {
+    "Ruby-throated Hummingbird": "rthhum",
+    "Yellow Warbler": "yerwar",
+    "Baltimore Oriole": "balori",
+    "Red-winged Blackbird": "rewbla",
 }

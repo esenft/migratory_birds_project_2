@@ -33,16 +33,48 @@ def estimate_arrival_window(
     local_last_7d: float,
     week_of_year: int,
 ) -> str:
-    if probability_present >= 0.8:
-        return "Present now"
-    elif probability_present >= 0.6:
-        return "Likely within 7 days"
-    elif probability_present >= 0.4:
+    if probability_present >= 0.5:
+        return "Likely present now"
+
+    if probability_present >= 0.4:
         return "Likely within 1–2 weeks"
-    elif corridor_last_7d > 0 or local_last_7d > 0:
-        return "Likely within 2–3 weeks"
-    else:
+
+    if probability_present >= 0.3:
+        if corridor_last_7d > 0 or local_last_7d > 0:
+            return "Possible arrival within 2–3 weeks"
         return "No strong arrival signal yet"
+
+    if corridor_last_7d > 0:
+        return "Possible arrival within 3–4 weeks"
+
+    return "No strong arrival signal yet"
+
+NORTHERN_STATES = {"Maine", "New Hampshire", "Vermont"}
+
+def apply_migration_sanity_check(
+    state: str,
+    common_name: str,
+    probability_present: float,
+    local_last_7d: float,
+    corridor_last_7d: float,
+) -> dict:
+    warning = None
+    adjusted_label = None
+
+    # For far-northern states, avoid overconfident "present" calls
+    # based only on weak local signal.
+    if state in NORTHERN_STATES and probability_present >= 0.8:
+        if local_last_7d < 5:
+            warning = (
+                "Caution: this is a northern-state prediction with limited recent local activity. "
+                "This may indicate early reports rather than broad statewide presence."
+            )
+            adjusted_label = "Emerging signal"
+
+    return {
+        "migration_warning": warning,
+        "adjusted_interpretation": adjusted_label,
+    }
 
 def build_model_features(state: str, common_name: str) -> Dict[str, Any]:
     """
@@ -101,6 +133,14 @@ def predict_presence(state: str, common_name: str) -> Dict[str, Any]:
     label = "Present" if prediction == 1 else "Not Present"
     interpretation = interpret_probability(probability_present)
 
+    sanity_check = apply_migration_sanity_check(
+        state=state,
+        common_name=common_name,
+        probability_present=probability_present,
+        local_last_7d=model_features["lag_1_obs_count"],
+        corridor_last_7d=built["corridor_features"]["south_corridor_obs_last_7d"],
+    )
+
     arrival_estimate = estimate_arrival_window(
     common_name=common_name,
     state=state,
@@ -121,6 +161,8 @@ def predict_presence(state: str, common_name: str) -> Dict[str, Any]:
     "arrival_estimate": arrival_estimate,  
     "model_features": model_features,
     "corridor_features": built["corridor_features"],
+    "migration_warning": sanity_check["migration_warning"],
+    "adjusted_interpretation": sanity_check["adjusted_interpretation"],
 }
 
 

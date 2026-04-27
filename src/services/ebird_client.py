@@ -8,6 +8,7 @@ import pandas as pd
 import requests
 
 from src.utils.state_config import STATE_CONFIG
+from src.services.species_map import COMMON_TO_EBIRD_CODE
 
 EBIRD_API_BASE = "https://api.ebird.org/v2/data/obs"
 
@@ -26,11 +27,17 @@ def get_region_code(state: str) -> str:
     return STATE_CONFIG[state]["ebird_region"]
 
 
-def fetch_recent_observations_for_region(region_code: str, back_days: int = 30) -> List[dict]:
-    """
-    Fetch recent observations for a region from eBird.
-    """
-    url = f"{EBIRD_API_BASE}/{region_code}/recent"
+def fetch_recent_species_observations_for_region(
+    region_code: str,
+    common_name: str,
+    back_days: int = 30,
+) -> List[dict]:
+    if common_name not in COMMON_TO_EBIRD_CODE:
+        raise ValueError(f"Unsupported bird: {common_name}")
+
+    species_code = COMMON_TO_EBIRD_CODE[common_name]
+
+    url = f"{EBIRD_API_BASE}/{region_code}/recent/{species_code}"
     params = {
         "back": back_days,
         "maxResults": 10000,
@@ -117,9 +124,12 @@ def get_target_state_recent_count_features(state: str, common_name: str) -> Dict
     - lag_3_obs_count: 15-21 days ago
     """
     region_code = get_region_code(state)
-    obs_json = fetch_recent_observations_for_region(region_code, back_days=30)
+    obs_json = fetch_recent_species_observations_for_region(
+        region_code,
+        common_name,
+        back_days=30,
+    )
     df = to_dataframe(obs_json)
-    df = filter_species(df, common_name)
 
     now = datetime.now(UTC).replace(tzinfo=None)
     w1_start = now - timedelta(days=7)
@@ -167,9 +177,12 @@ def get_southern_corridor_signal(state: str, common_name: str) -> Dict[str, floa
 
     for south_state in south_states:
         region_code = get_region_code(south_state)
-        obs_json = fetch_recent_observations_for_region(region_code, back_days=14)
+        obs_json = fetch_recent_species_observations_for_region(
+            region_code,
+            common_name,
+            back_days=14,
+        )
         df = to_dataframe(obs_json)
-        df = filter_species(df, common_name)
 
         total_last_7d += window_count(df, w1_start, now)
         total_prev_7d += window_count(df, w2_start, w1_start)
